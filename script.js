@@ -68,6 +68,17 @@ function updateBreakdown() {
         plugins: [ChartDataLabels]
     });
 
+    // Calculate column totals
+    let totalMM = 0, totalMNB = 0, totalFF = 0, totalFNB = 0, grandTotal = 0;
+    labels.forEach(e => {
+        const s = breakdown[e];
+        totalMM += s.M.M;
+        totalMNB += s.M.NB;
+        totalFF += s.F.F;
+        totalFNB += s.F.NB;
+        grandTotal += s.M.M + s.M.NB + s.F.F + s.F.NB;
+    });
+
     document.getElementById('breakdownTable').innerHTML = `
         <table>
             <tr><th>Ethnicity</th><th>M/M</th><th>M/NB</th><th>F/F</th><th>F/NB</th><th>Total</th></tr>
@@ -76,6 +87,7 @@ function updateBreakdown() {
                 const total = Object.values(s).reduce((sum, g) => sum + Object.values(g).reduce((s, v) => s + v, 0), 0);
                 return `<tr><td>${e}</td><td>${s.M.M}%</td><td>${s.M.NB}%</td><td>${s.F.F}%</td><td>${s.F.NB}%</td><td>${total}%</td></tr>`;
             }).join('')}
+            <tr><td><strong>Total</strong></td><td><strong>${totalMM}%</strong></td><td><strong>${totalMNB}%</strong></td><td><strong>${totalFF}%</strong></td><td><strong>${totalFNB}%</strong></td><td><strong>${grandTotal}%</strong></td></tr>
         </table>`;
 }
 
@@ -177,7 +189,6 @@ function runSimulation() {
     hiringGrid = Array(hiresPer).fill().map(() => Array(totalCompanies).fill(null));
     stepIndex = 0;
 
-    // Populate companies
     const meritList = [];
     const deiList = [];
     for (let i = 0; i < meritCompanies; i++) {
@@ -187,7 +198,6 @@ function runSimulation() {
         deiList.push({ type: 'DEI', id: `D${i+1}`, hires: [], minorityCount: 0 });
     }
 
-    // Order companies based on alternate setting
     if (alternate) {
         const maxLen = Math.max(meritCompanies, deiCompanies);
         for (let i = 0; i < maxLen; i++) {
@@ -347,7 +357,7 @@ function displayResults() {
     if (resultsChart) resultsChart.destroy();
     const maxRank = Math.max(...companies.map(co => co.avgRank)) + 1;
     resultsChart = new Chart(document.getElementById('resultsChart'), {
-        type: 'bar',
+        type: 'pie',
         data: {
             labels: companies.map(co => co.id),
             datasets: [{ label: 'Avg Rank', data: companies.map(co => co.avgRank), backgroundColor: companies.map(co => co.type === 'Merit' ? '#36A2EB' : '#FF6384') }]
