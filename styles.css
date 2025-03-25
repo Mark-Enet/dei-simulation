@@ -1,47 +1,189 @@
+/* General Page Styling */
 body {
     font-family: Arial, sans-serif;
-    margin: 20px;
+    margin: 0;
+    padding: 0;
+    background-color: #F5F5F5;
+    color: #333;
 }
+
+/* Header */
+header {
+    background-color: #FFFFFF;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2.5em;
+    color: #2C3E50;
+}
+
+header p {
+    margin: 5px 0 0;
+    font-size: 1.2em;
+    color: #7F8C8D;
+}
+
+.color-bar {
+    height: 10px;
+    background: linear-gradient(to right, #3498DB, #9B59B6);
+    margin-top: 15px;
+}
+
+/* Main Content */
+main {
+    padding: 20px;
+}
+
+/* Sections */
 .section {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    padding: 20px;
     margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
+.section h2 {
+    text-align: center;
+    color: #2C3E50;
+    margin-top: 0;
+    font-size: 1.8em;
+    border-bottom: 2px solid #3498DB;
+    padding-bottom: 5px;
+}
+
+.section h3 {
+    text-align: center;
+    color: #7F8C8D;
+    font-size: 1.4em;
+}
+
+/* Side-by-Side Layout */
 .side-by-side {
     display: flex;
     gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
+
+/* Hidden Elements */
 #results, #breakdownDrilldown, #resultsDrilldown {
     display: none;
 }
+
+/* Tables */
 table {
     border-collapse: collapse;
+    width: 100%;
+    max-width: 500px;
 }
+
 th, td {
-    border: 1px solid #ddd;
+    border: 1px solid #DDD;
     padding: 8px;
     text-align: center;
 }
+
 th {
-    background-color: #f2f2f2;
+    background-color: #ECF0F1;
+    color: #2C3E50;
 }
+
+/* Canvas */
 canvas {
     max-width: 400px;
 }
-#hiringGrid td, #candidatesGrid td {
+
+/* Grids */
+#hiringGrid td {
     cursor: pointer;
-    width: 60px;
+    width: 80px;
     height: 40px;
 }
-#hiringGrid td:hover, #candidatesGrid td:hover {
+
+#hiringGrid td:hover {
     opacity: 0.8;
 }
-#hiringGrid td.selected {
-    background-color: #FFFF00;
-    transition: background-color 0.5s;
-}
+
 #candidatesGrid {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     gap: 2px;
-    max-height: 400px; /* Adjust as needed */
+    max-height: 400px;
     overflow-y: auto;
+    margin: 10px auto;
+    width: 90%;
+    position: relative;
+}
+
+#candidatesGrid div {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+}
+
+#candidatesGrid div:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #FFF;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+#candidatesGrid div:hover {
+    opacity: 0.8;
+}
+
+/* Candidate Counter */
+#candidateCounter {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background-color: #ECF0F1;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 1em;
+    color: #2C3E50;
+}
+
+/* Buttons */
+button {
+    background-color: #3498DB;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+button:hover {
+    background-color: #2980B9;
+}
+
+/* Inputs */
+input, select {
+    padding: 5px;
+    border: 1px solid #DDD;
+    border-radius: 4px;
+    margin: 5px 0;
+}
+
+label {
+    margin-right: 10px;
 }

@@ -3,68 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DEI vs Merit Simulation</title>
+    <title>DEI vs Merit Hiring Simulation</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="script.js"></script>
 </head>
 <body>
-    <div class="section">
+    <header>
         <h1>DEI vs Merit Hiring Simulation</h1>
-        <label>Profession: </label>
-        <select id="profession" onchange="updateBreakdown()">
-            <option value="software">Software Engineer</option>
-            <option value="finance">Financial Analyst</option>
-            <option value="teacher">Teacher</option>
-            <option value="hr">Human Resources</option>
-        </select>
-    </div>
-    <div class="section">
-        <h2>Graduate Breakdown</h2>
-        <div class="side-by-side">
-            <div>
-                <canvas id="breakdownChart"></canvas>
-                <div id="breakdownDrilldown">
-                    <h3>Drilldown: <span id="breakdownDrilldownTitle"></span></h3>
-                    <div id="breakdownDrilldownContent"></div>
+        <p>Explore hiring outcomes across professions</p>
+        <div class="color-bar"></div>
+    </header>
+    <main>
+        <section class="section">
+            <h2>Profession Selection</h2>
+            <label>Profession: </label>
+            <select id="profession" onchange="updateBreakdown()">
+                <option value="software">Software Engineer</option>
+                <option value="finance">Financial Analyst</option>
+                <option value="teacher">Teacher</option>
+                <option value="hr">Human Resources</option>
+            </select>
+        </section>
+        <section class="section">
+            <h2>Graduate Breakdown</h2>
+            <div class="side-by-side">
+                <div>
+                    <canvas id="breakdownChart"></canvas>
+                    <div id="breakdownDrilldown">
+                        <h3>Drilldown: <span id="breakdownDrilldownTitle"></span></h3>
+                        <div id="breakdownDrilldownContent"></div>
+                    </div>
                 </div>
+                <div id="breakdownTable"></div>
             </div>
-            <div id="breakdownTable"></div>
-        </div>
-        <button onclick="toggleEditBreakdown()">Edit Breakdown</button>
-        <div id="editBreakdown" style="display:none;">
-            <div id="editTable"></div>
-            <button onclick="saveBreakdown()">Save</button>
-        </div>
-    </div>
-    <div class="section">
-        <h2>Settings</h2>
-        <label>Total Candidates: <input type="number" id="totalCandidates" min="10" max="200" value="100" onchange="generateCandidates()"></label><br>
-        <label>Total Companies: <input type="number" id="companies" min="2" max="20" value="10"></label><br>
-        <label>Hires per Company: <input type="number" id="hiresPer" min="1" max="10" value="5"></label><br>
-        <label>Speed: <input type="range" id="speed" min="0" max="4" value="1"></label> (0=Instant, 4=Step)
-    </div>
-    <div class="section">
-        <button onclick="runSimulation()">Run Simulation</button>
-        <button onclick="stepSimulation()" id="stepBtn" style="display:none;">Next Hire</button>
-        <button onclick="resetSimulation()">Reset</button>
-    </div>
-    <div class="section" id="results">
-        <h2>Simulation Results</h2>
-        <div id="hiringGrid"></div>
-        <h3>Available Candidates</h3>
-        <div id="candidatesGrid"></div>
-        <div class="side-by-side">
-            <div>
-                <canvas id="resultsChart"></canvas>
-                <div id="resultsDrilldown">
-                    <h3>Drilldown: <span id="resultsDrilldownTitle"></span></h3>
-                    <div id="resultsDrilldownContent"></div>
+            <button onclick="toggleEditBreakdown()">Edit Breakdown</button>
+            <div id="editBreakdown" style="display:none;">
+                <div id="editTable"></div>
+                <button onclick="saveBreakdown()">Save</button>
+            </div>
+        </section>
+        <section class="section">
+            <h2>Settings</h2>
+            <label>Total Candidates: <input type="number" id="totalCandidates" min="10" max="200" value="100" onchange="generateCandidates()"></label><br>
+            <label>Total Companies: <input type="number" id="companies" min="2" max="20" value="10"></label><br>
+            <label>Hires per Company: <input type="number" id="hiresPer" min="1" max="10" value="5"></label><br>
+            <label>Speed: <input type="range" id="speed" min="0" max="4" value="1"></label> (0=Instant, 4=Step)
+        </section>
+        <section class="section">
+            <h2>Controls</h2>
+            <button onclick="runSimulation()">Run Simulation</button>
+            <button onclick="stepSimulation()" id="stepBtn" style="display:none;">Next Hire</button>
+        </section>
+        <section class="section" id="results">
+            <h2>Simulation Results</h2>
+            <div id="hiringGrid"></div>
+            <h3>Available Candidates</h3>
+            <div id="candidatesGrid"></div>
+            <div id="candidateCounter"></div>
+            <div class="side-by-side">
+                <div>
+                    <canvas id="resultsChart"></canvas>
+                    <div id="resultsDrilldown">
+                        <h3>Drilldown: <span id="resultsDrilldownTitle"></span></h3>
+                        <div id="resultsDrilldownContent"></div>
+                    </div>
                 </div>
+                <div id="resultsTable"></div>
             </div>
-            <div id="resultsTable"></div>
-        </div>
-    </div>
+        </section>
+    </main>
 </body>
 </html>

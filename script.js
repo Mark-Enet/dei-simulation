@@ -33,7 +33,7 @@ const orientationSplit = { Hetero: 0.9, LGBTQ: 0.1 };
 const colors = { White: '#FFFFFF', Asian: '#FFFF99', Black: '#000000', Hispanic: '#8B4513', Other: '#FFA500' };
 
 let breakdownChart, resultsChart;
-let candidates = [], companies = [], stepIndex = 0, hiringGrid = [], currentPool = [];
+let candidates = [], companies = [], stepIndex = 0, hiringGrid = [], currentPool = [], allCandidates = [];
 
 function updateBreakdown() {
     const profession = document.getElementById('profession').value;
@@ -143,7 +143,7 @@ function generateCandidates() {
             for (let gender in genders) {
                 const count = Math.round(genders[gender] * scale);
                 for (let i = 0; i < count; i++) {
-                    const rank = Math.floor(Math.random() * 100) + 1; // 100 best, 1 worst
+                    const rank = Math.floor(Math.random() * 100) + 1;
                     candidates.push({
                         id: `${ethnicity}-${sex}-${gender}-${i}`,
                         rank,
@@ -151,14 +151,17 @@ function generateCandidates() {
                         sex,
                         gender,
                         orientation: Math.random() < orientationSplit.LGBTQ ? 'LGBTQ' : 'Hetero',
-                        minority: ethnicity !== 'White' || sex === 'F' || gender === 'NB' || Math.random() < orientationSplit.LGBTQ
+                        minority: ethnicity !== 'White' || sex === 'F' || gender === 'NB' || Math.random() < orientationSplit.LGBTQ,
+                        selected: false
                     });
                 }
             }
         }
     }
     candidates.sort((a, b) => b.rank - a.rank); // Best rank first
-    updateCandidatesGrid(candidates);
+    allCandidates = [...candidates]; // Store original list for fixed grid
+    currentPool = [...candidates];
+    updateCandidatesGrid();
 }
 
 function runSimulation() {
@@ -180,56 +183,59 @@ function runSimulation() {
         companies.push({ type: 'DEI', id: `D${i+1}`, hires: [], minorityCount: 0 });
     }
 
-    currentPool = [...candidates];
-    for (let round = 0; round < hiresPer; round++) {
-        for (let i = 0; i < companies.length; i++) {
-            const company = companies[i];
-            let selected;
-            if (company.type === 'Merit') {
-                selected = currentPool.shift();
-            } else {
-                const minorityTarget = hiresPer / 2;
-                if (company.minorityCount < minorityTarget && currentPool.some(c => c.minority)) {
-                    selected = currentPool.filter(c => c.minority).shift();
-                    currentPool = currentPool.filter(c => c !== selected);
+    currentPool = [...allCandidates];
+    let step = 0;
+    const totalSteps = hiresPer * companies.length;
+
+    function processStep() {
+        if (step >= totalSteps) {
+            companies.forEach(co => {
+                co.avgRank = co.hires.length ? co.hires.reduce((sum, h) => sum + h.rank, 0) / co.hires.length : 0;
+            });
+            setTimeout(() => displayResults(), 1000); // Pause before final results
+            return;
+        }
+
+        const round = Math.floor(step / companies.length);
+        const companyIdx = step % companies.length;
+        const company = companies[companyIdx];
+        let selected;
+
+        if (company.type === 'Merit') {
+            selected = currentPool.find(c => !c.selected);
+            if (selected) selected.selected = true;
+        } else {
+            const minorityTarget = hiresPer / 2;
+            if (company.minorityCount < minorityTarget && currentPool.some(c => c.minority && !c.selected)) {
+                selected = currentPool.filter(c => c.minority && !c.selected)[0];
+                if (selected) {
+                    selected.selected = true;
                     company.minorityCount++;
-                } else {
-                    selected = currentPool.shift();
                 }
+            } else {
+                selected = currentPool.find(c => !c.selected);
+                if (selected) selected.selected = true;
             }
-            if (selected) {
-                company.hires.push(selected);
-                hiringGrid[round][i] = selected;
-            }
+        }
+
+        if (selected) {
+            company.hires.push(selected);
+            hiringGrid[round][companyIdx] = selected;
+            currentPool = currentPool.map(c => c.id === selected.id ? { ...c, selected: true } : c);
+        }
+
+        displayStep(round, companyIdx);
+        step++;
+        if (speed === 0) {
+            processStep();
+        } else if (speed === 4) {
+            document.getElementById('stepBtn').style.display = 'inline';
+        } else {
+            setTimeout(processStep, [0, 1000, 2000, 3000][speed]);
         }
     }
 
-    companies.forEach(co => {
-        co.avgRank = co.hires.length ? co.hires.reduce((sum, h) => sum + h.rank, 0) / co.hires.length : 0;
-    });
-
-    if (speed === 0) {
-        displayResults(currentPool);
-    } else if (speed === 4) {
-        document.getElementById('stepBtn').style.display = 'inline';
-        stepSimulation();
-    } else {
-        let delay = [0, 1000, 2000, 3000][speed];
-        const totalSteps = hiresPer * companies.length;
-        let step = 0;
-        const interval = setInterval(() => {
-            if (step >= totalSteps) {
-                clearInterval(interval);
-                displayResults(currentPool);
-            } else {
-                const round = Math.floor(step / companies.length);
-                const companyIdx = step % companies.length;
-                displayStep(round, companyIdx, currentPool);
-                currentPool = currentPool.filter(c => c !== hiringGrid[round][companyIdx]);
-                step++;
-            }
-        }, delay);
-    }
+    processStep();
 }
 
 function stepSimulation() {
@@ -238,19 +244,46 @@ function stepSimulation() {
     if (stepIndex < totalSteps) {
         const round = Math.floor(stepIndex / companies.length);
         const companyIdx = stepIndex % companies.length;
-        displayStep(round, companyIdx, currentPool);
-        currentPool = currentPool.filter(c => c !== hiringGrid[round][companyIdx]);
-        updateCandidatesGrid(currentPool);
+        const company = companies[companyIdx];
+        let selected;
+
+        if (company.type === 'Merit') {
+            selected = currentPool.find(c => !c.selected);
+            if (selected) selected.selected = true;
+        } else {
+            const minorityTarget = hiresPer / 2;
+            if (company.minorityCount < minorityTarget && currentPool.some(c => c.minority && !c.selected)) {
+                selected = currentPool.filter(c => c.minority && !c.selected)[0];
+                if (selected) {
+                    selected.selected = true;
+                    company.minorityCount++;
+                }
+            } else {
+                selected = currentPool.find(c => !c.selected);
+                if (selected) selected.selected = true;
+            }
+        }
+
+        if (selected) {
+            company.hires.push(selected);
+            hiringGrid[round][companyIdx] = selected;
+            currentPool = currentPool.map(c => c.id === selected.id ? { ...c, selected: true } : c);
+        }
+
+        displayStep(round, companyIdx);
         stepIndex++;
     } else {
+        companies.forEach(co => {
+            co.avgRank = co.hires.length ? co.hires.reduce((sum, h) => sum + h.rank, 0) / co.hires.length : 0;
+        });
         document.getElementById('stepBtn').style.display = 'none';
-        displayResults(currentPool);
+        displayResults();
     }
 }
 
-function displayStep(round, companyIdx, pool) {
+function displayStep(round, companyIdx) {
     updateGrid(round, companyIdx);
-    updateCandidatesGrid(pool);
+    updateCandidatesGrid();
     document.getElementById('results').style.display = 'block';
 }
 
@@ -274,23 +307,27 @@ function updateGrid(round, companyIdx) {
     }
 }
 
-function updateCandidatesGrid(pool) {
+function updateCandidatesGrid() {
     const grid = document.getElementById('candidatesGrid');
     const total = parseInt(document.getElementById('totalCandidates').value);
     const rows = Math.ceil(total / 10);
     grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
     grid.innerHTML = Array(rows * 10).fill().map((_, i) => {
-        const candidate = pool[i];
-        const label = candidate ? `${candidate.sex}/${candidate.gender}` : '';
-        const bgColor = candidate ? colors[candidate.ethnicity] : '#808080';
-        const textColor = bgColor === '#000000' ? '#CCCCCC' : '#000000'; // Light grey for black cells
-        return `<div style="background-color:${bgColor};color:${textColor};" ${candidate ? `onclick="showResultsDrilldown('${candidate.id}', ${JSON.stringify(candidate)})"` : ''}>${label}</div>`;
+        const candidate = allCandidates[i];
+        if (!candidate) return '<div></div>';
+        const label = `${candidate.sex}/${candidate.gender}`;
+        const bgColor = candidate.selected ? '#808080' : colors[candidate.ethnicity];
+        const textColor = bgColor === '#000000' ? '#CCCCCC' : '#000000';
+        const tooltip = `ID: ${candidate.id}, Rank: ${candidate.rank}, Ethnicity: ${candidate.ethnicity}, Sex: ${candidate.sex}, Gender: ${candidate.gender}, Orientation: ${candidate.orientation}`;
+        return `<div style="background-color:${bgColor};color:${textColor};" data-tooltip="${tooltip}" ${!candidate.selected ? `onclick="showResultsDrilldown('${candidate.id}', ${JSON.stringify(candidate)})"` : ''}>${label}</div>`;
     }).join('');
+    const available = allCandidates.filter(c => !c.selected).length;
+    document.getElementById('candidateCounter').innerText = `${available}/${total}`;
 }
 
-function displayResults(pool) {
+function displayResults() {
     updateGrid(parseInt(document.getElementById('hiresPer').value) - 1, companies.length - 1);
-    updateCandidatesGrid(pool);
+    updateCandidatesGrid();
 
     if (resultsChart) resultsChart.destroy();
     const maxRank = Math.max(...companies.map(co => co.avgRank)) + 1;
