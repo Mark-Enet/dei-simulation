@@ -187,3 +187,7 @@ input, select {
 label {
     margin-right: 10px;
 }
+
+input[type="checkbox"] {
+    vertical-align: middle;
+}

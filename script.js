@@ -158,8 +158,8 @@ function generateCandidates() {
             }
         }
     }
-    candidates.sort((a, b) => b.rank - a.rank); // Best rank first
-    allCandidates = [...candidates]; // Store original list for fixed grid
+    candidates.sort((a, b) => b.rank - a.rank);
+    allCandidates = [...candidates];
     currentPool = [...candidates];
     updateCandidatesGrid();
 }
@@ -168,6 +168,7 @@ function runSimulation() {
     const hiresPer = parseInt(document.getElementById('hiresPer').value);
     const totalCompanies = parseInt(document.getElementById('companies').value);
     const speed = parseInt(document.getElementById('speed').value);
+    const alternate = document.getElementById('alternateSelection').checked;
     generateCandidates();
 
     const meritCompanies = Math.floor(totalCompanies / 2);
@@ -176,11 +177,25 @@ function runSimulation() {
     hiringGrid = Array(hiresPer).fill().map(() => Array(totalCompanies).fill(null));
     stepIndex = 0;
 
+    // Populate companies
+    const meritList = [];
+    const deiList = [];
     for (let i = 0; i < meritCompanies; i++) {
-        companies.push({ type: 'Merit', id: `M${i+1}`, hires: [], minorityCount: 0 });
+        meritList.push({ type: 'Merit', id: `M${i+1}`, hires: [], minorityCount: 0 });
     }
     for (let i = 0; i < deiCompanies; i++) {
-        companies.push({ type: 'DEI', id: `D${i+1}`, hires: [], minorityCount: 0 });
+        deiList.push({ type: 'DEI', id: `D${i+1}`, hires: [], minorityCount: 0 });
+    }
+
+    // Order companies based on alternate setting
+    if (alternate) {
+        const maxLen = Math.max(meritCompanies, deiCompanies);
+        for (let i = 0; i < maxLen; i++) {
+            if (i < meritCompanies) companies.push(meritList[i]);
+            if (i < deiCompanies) companies.push(deiList[i]);
+        }
+    } else {
+        companies = [...meritList, ...deiList];
     }
 
     currentPool = [...allCandidates];
@@ -192,7 +207,7 @@ function runSimulation() {
             companies.forEach(co => {
                 co.avgRank = co.hires.length ? co.hires.reduce((sum, h) => sum + h.rank, 0) / co.hires.length : 0;
             });
-            setTimeout(() => displayResults(), 1000); // Pause before final results
+            setTimeout(() => displayResults(), 1000);
             return;
         }
 
