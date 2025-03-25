@@ -29,12 +29,18 @@
             </div>
             <div id="breakdownTable"></div>
         </div>
+        <button onclick="toggleEditBreakdown()">Edit Breakdown</button>
+        <div id="editBreakdown" style="display:none;">
+            <div id="editTable"></div>
+            <button onclick="saveBreakdown()">Save</button>
+        </div>
     </div>
     <div class="section">
         <h2>Settings</h2>
-        <label>Hires per Company: <input type="number" id="hiresPer" min="1" max="10" value="5"></label><br>
+        <label>Total Candidates: <input type="number" id="totalCandidates" min="10" max="200" value="100" onchange="generateCandidates()"></label><br>
         <label>Total Companies: <input type="number" id="companies" min="2" max="20" value="10"></label><br>
-        <label>Speed: <input type="range" id="speed" min="0" max="3" value="1"></label> (0=Instant, 3=Step)
+        <label>Hires per Company: <input type="number" id="hiresPer" min="1" max="10" value="5"></label><br>
+        <label>Speed: <input type="range" id="speed" min="0" max="4" value="1"></label> (0=Instant, 4=Step)
     </div>
     <div class="section">
         <button onclick="runSimulation()">Run Simulation</button>
@@ -43,8 +49,8 @@
     <div class="section" id="results">
         <h2>Simulation Results</h2>
         <div id="hiringGrid"></div>
-        <h3>Remaining Candidates</h3>
-        <div id="remainingCandidates"></div>
+        <h3>Available Candidates</h3>
+        <div id="candidatesGrid"></div>
         <div class="side-by-side">
             <div>
                 <canvas id="resultsChart"></canvas>

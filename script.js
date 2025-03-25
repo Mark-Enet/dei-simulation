@@ -29,6 +29,7 @@ const data = {
     }
 };
 const orientationSplit = { Hetero: 0.9, LGBTQ: 0.1 };
+const colors = { White: '#FFFFFF', Asian: '#FFFF99', Black: '#000000', Hispanic: '#8B4513', Other: '#FFA500' };
 
 let breakdownChart, resultsChart;
 let candidates = [], companies = [], stepIndex = 0, hiringGrid = [];
@@ -88,16 +89,58 @@ function showBreakdownDrilldown(ethnicity, details) {
     `;
 }
 
+function toggleEditBreakdown() {
+    const editDiv = document.getElementById('editBreakdown');
+    editDiv.style.display = editDiv.style.display === 'none' ? 'block' : 'none';
+    if (editDiv.style.display === 'block') {
+        const profession = document.getElementById('profession').value;
+        const breakdown = data[profession];
+        document.getElementById('editTable').innerHTML = `
+            <table>
+                <tr><th>Ethnicity</th><th>M/M</th><th>M/NB</th><th>F/F</th><th>F/NB</th></tr>
+                ${Object.keys(breakdown).map(e => `
+                    <tr>
+                        <td>${e}</td>
+                        <td><input type="number" id="${e}-M-M" value="${breakdown[e].M.M}" min="0" max="100"></td>
+                        <td><input type="number" id="${e}-M-NB" value="${breakdown[e].M.NB}" min="0" max="100"></td>
+                        <td><input type="number" id="${e}-F-F" value="${breakdown[e].F.F}" min="0" max="100"></td>
+                        <td><input type="number" id="${e}-F-NB" value="${breakdown[e].F.NB}" min="0" max="100"></td>
+                    </tr>`).join('')}
+            </table>`;
+    }
+}
+
+function saveBreakdown() {
+    const profession = document.getElementById('profession').value;
+    const breakdown = data[profession];
+    for (let e in breakdown) {
+        breakdown[e].M.M = parseInt(document.getElementById(`${e}-M-M`).value);
+        breakdown[e].M.NB = parseInt(document.getElementById(`${e}-M-NB`).value);
+        breakdown[e].F.F = parseInt(document.getElementById(`${e}-F-F`).value);
+        breakdown[e].F.NB = parseInt(document.getElementById(`${e}-F-NB`).value);
+    }
+    updateBreakdown();
+    generateCandidates();
+    document.getElementById('editBreakdown').style.display = 'none';
+}
+
 function generateCandidates() {
     candidates = [];
     const profession = document.getElementById('profession').value;
     const breakdown = data[profession];
+    const totalCandidates = parseInt(document.getElementById('totalCandidates').value);
+    let totalPercent = 0;
+    for (let e in breakdown) {
+        totalPercent += breakdown[e].M.M + breakdown[e].M.NB + breakdown[e].F.F + breakdown[e].F.NB;
+    }
+    const scale = totalCandidates / totalPercent;
+
     for (let ethnicity in breakdown) {
         const sexes = breakdown[ethnicity];
         for (let sex in sexes) {
             const genders = sexes[sex];
             for (let gender in genders) {
-                const count = Math.round(genders[gender]);
+                const count = Math.round(genders[gender] * scale);
                 for (let i = 0; i < count; i++) {
                     const rank = Math.floor(Math.random() * 100) + 1; // 100 best, 1 worst
                     candidates.push({
@@ -114,6 +157,7 @@ function generateCandidates() {
         }
     }
     candidates.sort((a, b) => b.rank - a.rank); // Best rank first
+    updateCandidatesGrid(candidates);
 }
 
 function runSimulation() {
@@ -165,11 +209,11 @@ function runSimulation() {
 
     if (speed === 0) {
         displayResults(pool);
-    } else if (speed === 3) {
+    } else if (speed === 4) {
         document.getElementById('stepBtn').style.display = 'inline';
         stepSimulation(pool);
     } else {
-        let delay = [0, 500, 1000, 2000][speed];
+        let delay = [0, 1000, 2000, 3000][speed];
         const totalSteps = hiresPer * companies.length;
         let step = 0;
         const interval = setInterval(() => {
@@ -180,6 +224,7 @@ function runSimulation() {
                 const round = Math.floor(step / companies.length);
                 const companyIdx = step % companies.length;
                 displayStep(round, companyIdx, pool);
+                pool = pool.filter(c => c !== hiringGrid[round][companyIdx]);
                 step++;
             }
         }, delay);
@@ -187,11 +232,14 @@ function runSimulation() {
 }
 
 function stepSimulation(pool) {
-    const totalSteps = parseInt(document.getElementById('hiresPer').value) * companies.length;
+    const hiresPer = parseInt(document.getElementById('hiresPer').value);
+    const totalSteps = hiresPer * companies.length;
     if (stepIndex < totalSteps) {
         const round = Math.floor(stepIndex / companies.length);
         const companyIdx = stepIndex % companies.length;
         displayStep(round, companyIdx, pool);
+        pool = pool.filter(c => c !== hiringGrid[round][companyIdx]);
+        updateCandidatesGrid(pool);
         stepIndex++;
     } else {
         document.getElementById('stepBtn').style.display = 'none';
@@ -201,7 +249,7 @@ function stepSimulation(pool) {
 
 function displayStep(round, companyIdx, pool) {
     updateGrid(round, companyIdx);
-    updateRemainingCandidates(pool);
+    updateCandidatesGrid(pool);
     document.getElementById('results').style.display = 'block';
 }
 
@@ -225,17 +273,23 @@ function updateGrid(round, companyIdx) {
     }
 }
 
-function updateRemainingCandidates(pool) {
-    document.getElementById('remainingCandidates').innerHTML = `
-        <table>
-            <tr><th>ID</th><th>Rank</th></tr>
-            ${pool.slice(0, 10).map(c => `<tr><td>${c.id}</td><td>${c.rank}</td></tr>`).join('')}${pool.length > 10 ? '<tr><td colspan="2">...and more</td></tr>' : ''}
-        </table>`;
+function updateCandidatesGrid(pool) {
+    const grid = document.getElementById('candidatesGrid');
+    const total = parseInt(document.getElementById('totalCandidates').value);
+    const rows = Math.ceil(total / 10);
+    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    grid.innerHTML = Array(rows * 10).fill().map((_, i) => {
+        const candidate = pool[i];
+        const label = candidate ? `${candidate.sex}/${candidate.gender}` : '';
+        const bgColor = candidate ? colors[candidate.ethnicity] : '#808080';
+        const textColor = bgColor === '#000000' ? '#FFFFFF' : '#000000';
+        return `<div style="background-color:${bgColor};color:${textColor};" ${candidate ? `onclick="showResultsDrilldown('${candidate.id}', ${JSON.stringify(candidate)})"` : ''}>${label}</div>`;
+    }).join('');
 }
 
 function displayResults(pool) {
     updateGrid(parseInt(document.getElementById('hiresPer').value) - 1, companies.length - 1);
-    updateRemainingCandidates(pool);
+    updateCandidatesGrid(pool);
 
     if (resultsChart) resultsChart.destroy();
     const maxRank = Math.max(...companies.map(co => co.avgRank)) + 1;
@@ -282,4 +336,5 @@ function showResultsDrilldown(title, data) {
     }
 }
 
-updateBreakdown(); // Initial load
+updateBreakdown();
+generateCandidates();
