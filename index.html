@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEI vs Merit Simulation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin-bottom: 20px; }
+        #results { display: none; }
+    </style>
+</head>
+<body>
+    <div class="section">
+        <h1>DEI vs Merit Hiring Simulation</h1>
+        <label>Profession: </label>
+        <select id="profession">
+            <option value="software">Software Engineer</option>
+            <option value="finance">Financial Analyst</option>
+            <option value="teacher">Teacher</option>
+        </select>
+    </div>
+    <div class="section">
+        <h2>Graduate Breakdown</h2>
+        <button onclick="toggleView()">Toggle Chart/Table</button>
+        <div id="breakdown">Table view: 40% White, 20% Black, 20% Hispanic, 20% Asian (placeholder)</div>
+    </div>
+    <div class="section">
+        <h2>Settings</h2>
+        <label>Hires per Company: <input type="number" id="hiresPer" min="1" max="10" value="5"></label><br>
+        <label>Total Companies: <input type="number" id="companies" min="2" max="20" value="10"></label><br>
+        <label>Speed: <input type="range" id="speed" min="0" max="3" value="1"></label> (0=Instant, 3=Step)
+    </div>
+    <div class="section">
+        <button onclick="runSimulation()">Run Simulation</button>
+        <button onclick="stepSimulation()" id="stepBtn" style="display:none;">Next Step</button>
+    </div>
+    <div class="section" id="results">
+        <h2>Results</h2>
+        <div id="output"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let candidates = [];
+        let stepIndex = 0;
+        let hires = [];
+
+        function toggleView() {
+            const breakdown = document.getElementById('breakdown');
+            breakdown.innerText = breakdown.innerText.includes('Table') 
+                ? 'Chart view: [Placeholder for Chart.js integration]' 
+                : 'Table view: 40% White, 20% Black, 20% Hispanic, 20% Asian (placeholder)';
+        }
+
+        function generateCandidates() {
+            candidates = [];
+            for (let i = 0; i < 100; i++) {
+                candidates.push({
+                    id: i,
+                    rank: Math.floor(Math.random() * 100) + 1,
+                    minority: Math.random() > 0.5 // 50% minority for simplicity
+                });
+            }
+            candidates.sort((a, b) => a.rank - b.rank); // Best rank first
+        }
+
+        function runSimulation() {
+            const hiresPer = parseInt(document.getElementById('hiresPer').value);
+            const totalCompanies = parseInt(document.getElementById('companies').value);
+            const speed = parseInt(document.getElementById('speed').value);
+            generateCandidates();
+            hires = [];
+            stepIndex = 0;
+
+            const meritCompanies = Math.floor(totalCompanies / 2);
+            const deiCompanies = totalCompanies - meritCompanies;
+
+            let pool = [...candidates];
+            for (let i = 0; i < meritCompanies; i++) {
+                hires.push({ type: 'Merit', id: `M${i+1}`, hires: pool.splice(0, hiresPer), avgRank: 0 });
+            }
+            for (let i = 0; i < deiCompanies; i++) {
+                let deiHires = [];
+                let minorities = pool.filter(c => c.minority);
+                let nonMinorities = pool.filter(c => !c.minority);
+                for (let j = 0; j < hiresPer; j++) {
+                    if (j < hiresPer / 2 && minorities.length) {
+                        deiHires.push(minorities.shift());
+                    } else if (nonMinorities.length) {
+                        deiHires.push(nonMinorities.shift());
+                    } else if (minorities.length) {
+                        deiHires.push(minorities.shift());
+                    }
+                }
+                hires.push({ type: 'DEI', id: `D${i+1}`, hires: deiHires, avgRank: 0 });
+            }
+
+            hires.forEach(co => {
+                co.avgRank = co.hires.reduce((sum, h) => sum + h.rank, 0) / co.hires.length;
+            });
+
+            if (speed === 0) {
+                displayResults();
+            } else if (speed === 3) {
+                document.getElementById('stepBtn').style.display = 'inline';
+                stepSimulation();
+            } else {
+                let delay = [0, 500, 1000, 2000][speed];
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (i >= hires.length) {
+                        clearInterval(interval);
+                        displayResults();
+                    } else {
+                        displayStep(i);
+                        i++;
+                    }
+                }, delay);
+            }
+        }
+
+        function stepSimulation() {
+            if (stepIndex < hires.length) {
+                displayStep(stepIndex);
+                stepIndex++;
+            } else {
+                document.getElementById('stepBtn').style.display = 'none';
+                displayResults();
+            }
+        }
+
+        function displayStep(index) {
+            const output = document.getElementById('output');
+            output.innerHTML += `${hires[index].type} ${hires[index].id}: Avg Rank ${hires[index].avgRank.toFixed(2)}<br>`;
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function displayResults() {
+            const output = document.getElementById('output');
+            output.innerHTML = hires.map(co => `${co.type} ${co.id}: Avg Rank ${co.avgRank.toFixed(2)}`).join('<br>');
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('stepBtn').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
