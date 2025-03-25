@@ -7,23 +7,28 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .section { margin-bottom: 20px; }
-        #results { display: none; }
+        #results, #drilldown { display: none; }
+        table { border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
     <div class="section">
         <h1>DEI vs Merit Hiring Simulation</h1>
         <label>Profession: </label>
-        <select id="profession">
+        <select id="profession" onchange="updateBreakdown()">
             <option value="software">Software Engineer</option>
             <option value="finance">Financial Analyst</option>
             <option value="teacher">Teacher</option>
+            <option value="hr">Human Resources</option>
         </select>
     </div>
     <div class="section">
         <h2>Graduate Breakdown</h2>
         <button onclick="toggleView()">Toggle Chart/Table</button>
-        <div id="breakdown">Table view: 40% White, 20% Black, 20% Hispanic, 20% Asian (placeholder)</div>
+        <canvas id="breakdownChart" width="400" height="200"></canvas>
+        <div id="breakdownTable"></div>
     </div>
     <div class="section">
         <h2>Settings</h2>
@@ -38,29 +43,99 @@
     <div class="section" id="results">
         <h2>Results</h2>
         <div id="output"></div>
+        <button onclick="toggleResultsView()">Toggle Chart/Table</button>
+        <canvas id="resultsChart" width="400" height="200"></canvas>
+        <div id="resultsTable"></div>
+        <div id="drilldown">
+            <h3>Drilldown: <span id="drilldownTitle"></span></h3>
+            <div id="drilldownContent"></div>
+            <button onclick="hideDrilldown()">Back</button>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        let candidates = [];
-        let stepIndex = 0;
-        let hires = [];
+        const data = {
+            software: { White: { M: 30, F: 20 }, Asian: { M: 15, F: 10 }, Hispanic: { M: 6, F: 4 }, Black: { M: 6, F: 4 }, Other: { M: 3, F: 2 } },
+            finance: { White: { M: 32, F: 28 }, Asian: { M: 8, F: 7 }, Hispanic: { M: 5, F: 5 }, Black: { M: 5, F: 5 }, Other: { M: 3, F: 2 } },
+            teacher: { White: { M: 20, F: 50 }, Black: { M: 3, F: 7 }, Hispanic: { M: 3, F: 7 }, Asian: { M: 2, F: 3 }, Other: { M: 2, F: 3 } },
+            hr: { White: { M: 15, F: 50 }, Black: { M: 4, F: 11 }, Hispanic: { M: 3, F: 7 }, Asian: { M: 2, F: 3 }, Other: { M: 2, F: 3 } }
+        };
+
+        let breakdownChart, resultsChart;
+        let isChartView = true, isResultsChartView = true;
+        let candidates = [], hires = [], stepIndex = 0;
+
+        function updateBreakdown() {
+            const profession = document.getElementById('profession').value;
+            const breakdown = data[profession];
+            const labels = Object.keys(breakdown);
+            const values = labels.map(ethnicity => breakdown[ethnicity].M + breakdown[ethnicity].F);
+
+            if (breakdownChart) breakdownChart.destroy();
+            if (isChartView) {
+                document.getElementById('breakdownChart').style.display = 'block';
+                document.getElementById('breakdownTable').style.display = 'none';
+                breakdownChart = new Chart(document.getElementById('breakdownChart'), {
+                    type: 'pie',
+                    data: { labels, datasets: [{ data: values, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] },
+                    options: {
+                        onClick: (e, elements) => {
+                            if (elements.length) {
+                                const index = elements[0].index;
+                                showDrilldown(labels[index], breakdown[labels[index]]);
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('breakdownChart').style.display = 'none';
+                document.getElementById('breakdownTable').style.display = 'block';
+                document.getElementById('breakdownTable').innerHTML = `
+                    <table>
+                        <tr><th>Ethnicity</th><th>Male</th><th>Female</th><th>Total</th></tr>
+                        ${labels.map(e => `<tr><td>${e}</td><td>${breakdown[e].M}%</td><td>${breakdown[e].F}%</td><td>${breakdown[e].M + breakdown[e].F}%</td></tr>`).join('')}
+                    </table>`;
+            }
+        }
 
         function toggleView() {
-            const breakdown = document.getElementById('breakdown');
-            breakdown.innerText = breakdown.innerText.includes('Table') 
-                ? 'Chart view: [Placeholder for Chart.js integration]' 
-                : 'Table view: 40% White, 20% Black, 20% Hispanic, 20% Asian (placeholder)';
+            isChartView = !isChartView;
+            updateBreakdown();
+        }
+
+        function toggleResultsView() {
+            isResultsChartView = !isResultsChartView;
+            displayResults();
+        }
+
+        function showDrilldown(ethnicity, details) {
+            document.getElementById('drilldown').style.display = 'block';
+            document.getElementById('drilldownTitle').innerText = ethnicity;
+            document.getElementById('drilldownContent').innerHTML = `Male: ${details.M}%, Female: ${details.F}%`;
+        }
+
+        function hideDrilldown() {
+            document.getElementById('drilldown').style.display = 'none';
         }
 
         function generateCandidates() {
             candidates = [];
-            for (let i = 0; i < 100; i++) {
-                candidates.push({
-                    id: i,
-                    rank: Math.floor(Math.random() * 100) + 1,
-                    minority: Math.random() > 0.5 // 50% minority for simplicity
-                });
+            const profession = document.getElementById('profession').value;
+            const breakdown = data[profession];
+            for (let ethnicity in breakdown) {
+                for (let sex in breakdown[ethnicity]) {
+                    const count = Math.round(breakdown[ethnicity][sex]);
+                    for (let i = 0; i < count; i++) {
+                        candidates.push({
+                            id: `${ethnicity}-${sex}-${i}`,
+                            rank: Math.floor(Math.random() * 100) + 1,
+                            ethnicity,
+                            sex,
+                            minority: ethnicity !== 'White' || sex === 'F'
+                        });
+                    }
+                }
             }
             candidates.sort((a, b) => a.rank - b.rank); // Best rank first
         }
@@ -139,9 +214,41 @@
         function displayResults() {
             const output = document.getElementById('output');
             output.innerHTML = hires.map(co => `${co.type} ${co.id}: Avg Rank ${co.avgRank.toFixed(2)}`).join('<br>');
+
+            if (resultsChart) resultsChart.destroy();
+            if (isResultsChartView) {
+                document.getElementById('resultsChart').style.display = 'block';
+                document.getElementById('resultsTable').style.display = 'none';
+                resultsChart = new Chart(document.getElementById('resultsChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: hires.map(co => `${co.type} ${co.id}`),
+                        datasets: [{ label: 'Avg Rank', data: hires.map(co => co.avgRank), backgroundColor: hires.map(co => co.type === 'Merit' ? '#36A2EB' : '#FF6384') }]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true, max: 100 } },
+                        onClick: (e, elements) => {
+                            if (elements.length) {
+                                const index = elements[0].index;
+                                showDrilldown(`${hires[index].type} ${hires[index].id}`, hires[index]);
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('resultsChart').style.display = 'none';
+                document.getElementById('resultsTable').style.display = 'block';
+                document.getElementById('resultsTable').innerHTML = `
+                    <table>
+                        <tr><th>Company</th><th>Avg Rank</th></tr>
+                        ${hires.map(co => `<tr><td>${co.type} ${co.id}</td><td>${co.avgRank.toFixed(2)}</td></tr>`).join('')}
+                    </table>`;
+            }
             document.getElementById('results').style.display = 'block';
             document.getElementById('stepBtn').style.display = 'none';
         }
+
+        updateBreakdown(); // Initial load
     </script>
 </body>
 </html>
