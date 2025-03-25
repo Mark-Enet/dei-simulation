@@ -1,3 +1,4 @@
+console.log("script.js loaded successfully");
 const data = {
     software: {
         White: { M: { M: 28, NB: 2 }, F: { F: 19, NB: 1 } },
@@ -32,7 +33,7 @@ const orientationSplit = { Hetero: 0.9, LGBTQ: 0.1 };
 const colors = { White: '#FFFFFF', Asian: '#FFFF99', Black: '#000000', Hispanic: '#8B4513', Other: '#FFA500' };
 
 let breakdownChart, resultsChart;
-let candidates = [], companies = [], stepIndex = 0, hiringGrid = [];
+let candidates = [], companies = [], stepIndex = 0, hiringGrid = [], currentPool = [];
 
 function updateBreakdown() {
     const profession = document.getElementById('profession').value;
@@ -179,21 +180,21 @@ function runSimulation() {
         companies.push({ type: 'DEI', id: `D${i+1}`, hires: [], minorityCount: 0 });
     }
 
-    let pool = [...candidates];
+    currentPool = [...candidates];
     for (let round = 0; round < hiresPer; round++) {
         for (let i = 0; i < companies.length; i++) {
             const company = companies[i];
             let selected;
             if (company.type === 'Merit') {
-                selected = pool.shift();
+                selected = currentPool.shift();
             } else {
                 const minorityTarget = hiresPer / 2;
-                if (company.minorityCount < minorityTarget && pool.some(c => c.minority)) {
-                    selected = pool.filter(c => c.minority).shift();
-                    pool = pool.filter(c => c !== selected);
+                if (company.minorityCount < minorityTarget && currentPool.some(c => c.minority)) {
+                    selected = currentPool.filter(c => c.minority).shift();
+                    currentPool = currentPool.filter(c => c !== selected);
                     company.minorityCount++;
                 } else {
-                    selected = pool.shift();
+                    selected = currentPool.shift();
                 }
             }
             if (selected) {
@@ -208,10 +209,10 @@ function runSimulation() {
     });
 
     if (speed === 0) {
-        displayResults(pool);
+        displayResults(currentPool);
     } else if (speed === 4) {
         document.getElementById('stepBtn').style.display = 'inline';
-        stepSimulation(pool);
+        stepSimulation();
     } else {
         let delay = [0, 1000, 2000, 3000][speed];
         const totalSteps = hiresPer * companies.length;
@@ -219,31 +220,31 @@ function runSimulation() {
         const interval = setInterval(() => {
             if (step >= totalSteps) {
                 clearInterval(interval);
-                displayResults(pool);
+                displayResults(currentPool);
             } else {
                 const round = Math.floor(step / companies.length);
                 const companyIdx = step % companies.length;
-                displayStep(round, companyIdx, pool);
-                pool = pool.filter(c => c !== hiringGrid[round][companyIdx]);
+                displayStep(round, companyIdx, currentPool);
+                currentPool = currentPool.filter(c => c !== hiringGrid[round][companyIdx]);
                 step++;
             }
         }, delay);
     }
 }
 
-function stepSimulation(pool) {
+function stepSimulation() {
     const hiresPer = parseInt(document.getElementById('hiresPer').value);
     const totalSteps = hiresPer * companies.length;
     if (stepIndex < totalSteps) {
         const round = Math.floor(stepIndex / companies.length);
         const companyIdx = stepIndex % companies.length;
-        displayStep(round, companyIdx, pool);
-        pool = pool.filter(c => c !== hiringGrid[round][companyIdx]);
-        updateCandidatesGrid(pool);
+        displayStep(round, companyIdx, currentPool);
+        currentPool = currentPool.filter(c => c !== hiringGrid[round][companyIdx]);
+        updateCandidatesGrid(currentPool);
         stepIndex++;
     } else {
         document.getElementById('stepBtn').style.display = 'none';
-        displayResults(pool);
+        displayResults(currentPool);
     }
 }
 
@@ -282,7 +283,7 @@ function updateCandidatesGrid(pool) {
         const candidate = pool[i];
         const label = candidate ? `${candidate.sex}/${candidate.gender}` : '';
         const bgColor = candidate ? colors[candidate.ethnicity] : '#808080';
-        const textColor = bgColor === '#000000' ? '#FFFFFF' : '#000000';
+        const textColor = bgColor === '#000000' ? '#CCCCCC' : '#000000'; // Light grey for black cells
         return `<div style="background-color:${bgColor};color:${textColor};" ${candidate ? `onclick="showResultsDrilldown('${candidate.id}', ${JSON.stringify(candidate)})"` : ''}>${label}</div>`;
     }).join('');
 }

@@ -34,8 +34,14 @@ canvas {
 #hiringGrid td:hover, #candidatesGrid td:hover {
     opacity: 0.8;
 }
+#hiringGrid td.selected {
+    background-color: #FFFF00;
+    transition: background-color 0.5s;
+}
 #candidatesGrid {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     gap: 2px;
+    max-height: 400px; /* Adjust as needed */
+    overflow-y: auto;
 }
