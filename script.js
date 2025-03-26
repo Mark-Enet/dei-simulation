@@ -68,7 +68,6 @@ function updateBreakdown() {
         plugins: [ChartDataLabels]
     });
 
-    // Calculate column totals
     let totalMM = 0, totalMNB = 0, totalFF = 0, totalFNB = 0, grandTotal = 0;
     labels.forEach(e => {
         const s = breakdown[e];
@@ -178,13 +177,13 @@ function generateCandidates() {
 
 function runSimulation() {
     const hiresPer = parseInt(document.getElementById('hiresPer').value);
-    const totalCompanies = parseInt(document.getElementById('companies').value);
+    const meritCompanies = parseInt(document.getElementById('meritCompanies').value);
+    const deiCompanies = parseInt(document.getElementById('deiCompanies').value);
+    const totalCompanies = meritCompanies + deiCompanies;
     const speed = parseInt(document.getElementById('speed').value);
     const alternate = document.getElementById('alternateSelection').checked;
     generateCandidates();
 
-    const meritCompanies = Math.floor(totalCompanies / 2);
-    const deiCompanies = totalCompanies - meritCompanies;
     companies = [];
     hiringGrid = Array(hiresPer).fill().map(() => Array(totalCompanies).fill(null));
     stepIndex = 0;
@@ -357,13 +356,19 @@ function displayResults() {
     if (resultsChart) resultsChart.destroy();
     const maxRank = Math.max(...companies.map(co => co.avgRank)) + 1;
     resultsChart = new Chart(document.getElementById('resultsChart'), {
-        type: 'pie',
+        type: 'bar',
         data: {
             labels: companies.map(co => co.id),
-            datasets: [{ label: 'Avg Rank', data: companies.map(co => co.avgRank), backgroundColor: companies.map(co => co.type === 'Merit' ? '#36A2EB' : '#FF6384') }]
+            datasets: [{
+                label: 'Avg Rank',
+                data: companies.map(co => co.avgRank),
+                backgroundColor: companies.map(co => co.type === 'Merit' ? '#36A2EB' : '#FF6384')
+            }]
         },
         options: {
-            scales: { y: { beginAtZero: true, max: maxRank } },
+            scales: {
+                y: { beginAtZero: true, max: maxRank }
+            },
             onClick: (e, elements) => {
                 if (elements.length) {
                     const index = elements[0].index;
